@@ -144,14 +144,7 @@ class PortfolioGraph():
     
     #Retorna verdadero si el riesgo medio del portafolio está dentro del limite
     def risk_is_in_bounds(self, max_risk: float, portfolio: list):
-        for i in range(len(portfolio)-1):
-            for j in range(len(portfolio)):
-                if i == j :
-                    continue
-                else:
-                    if self.adjacency[portfolio[i]][portfolio[j]] > max_risk:
-                        return False
-        return True
+        return self.get_mean_risk(portfolio) < max_risk
 
     #Retorna el beneficio medio del portafolio
     def get_mean_benefit(self, portfolio: list):
