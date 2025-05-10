@@ -7,8 +7,7 @@ COLORS = {
 }
     
 # 🗑️ - Clase auxiliar para limpiar los prints pesados
-class Printer:
-    
+class Printer: 
     @staticmethod
     def clear_console( text : str ):
         from os import system
@@ -34,6 +33,22 @@ class Printer:
         Opcion: """
     
     @staticmethod
+    def title():
+        return f"{COLORS['red']}PORTAFOLIO DE MAXIMO BENEFICIO {COLORS['reset']}"
+
+    @staticmethod
+    def print_portfolio(portfolio : list):
+        print("\n".join([f'{str(action)}:\tRendimiento: {actions[action][0]}  \tRiesgo: {actions[action][1]}' for action in portfolio]))
+
+    @staticmethod
+    def summarize( benefit : float, portfolios : list, risk : float = None ):
+        return f"""
+        {COLORS['blue']}[INFO]{COLORS['reset']}
+        - Rendimiento promedio: {benefit}
+        - Cantidad de portafolios que cumplen la condicion: {portfolios}
+        """ + (f"- Riesgo:{risk}" if risk else " ")
+
+    @staticmethod
     def separator():
         return "=" * 86
 
@@ -41,43 +56,55 @@ class Printer:
     def error( aux : str = "Opción inválida"):
         return f"{COLORS['red']} [ERROR] {aux} {COLORS['reset']}"
 
+
+
 # 💡 - Clase auxiliar de métodos varios
 class Utils:
     @staticmethod
-    def validate_input(type = int, text:str = "", limits: tuple = (0,2)):
-        try:
-            out = type(input(text))
-            while not limits[0] <= out <= limits[1]:
-                Printer.clear_console(Printer.error())
-                out = type(input(text))
-            Printer.clear_console("")
-            return out
-        
-        except Exception as e:
-            Printer.clear_console(Printer.error(str(e)))
-    
+    def validate_input(type_=int, text: str = "", limits: tuple = (0, 2), clear: bool = True):
+        while True:
+            try:
+                out = type_(input(text))
+                if not limits[0] <= out <= limits[1]:
+                    Printer.clear_console(Printer.error())
+                    continue
+                if clear:
+                    Printer.clear_console("")
+                return out
+            except Exception as e:
+                Printer.clear_console(Printer.error(f"Entrada inválida: {e}"))
+
     @staticmethod
     def read(mode: str):
         import tkinter as tk
         from tkinter import filedialog
-        
+
         root = tk.Tk()
         root.withdraw()
 
-        if "rendimientos" in mode:
-            path = filedialog.askopenfilename(title="Seleccione archivo de rendimientos", defaultextension="*, .txt", initialfile="rendimientos.txt")
-            root.deiconify()
-            root.destroy()
-            with open(path, mode='r') as file:
-                print(f"Ruta de rendimientos: {path}")
+        title = f"Seleccione archivo de {mode}"
+
+        path = filedialog.askopenfilename(
+            title= title,
+            defaultextension=".txt",
+            filetypes=[("Archivos de texto", "*.txt")]
+        )
+
+        root.deiconify()
+        root.destroy()
+
+        if not path:
+            raise Exception("No se seleccionó ningún archivo. Vuelva a iniciar el programa")
+
+        print(f"Importado: {COLORS['red']}[{ '/'.join(path.split('/')[-2:]) }]{COLORS['reset']}")
+
+        with open(path, mode='r') as file:
+            if "rendimientos" in mode:
                 return { i.strip().split(" ")[0]: (float(i.strip().split(" ")[1]), float(i.strip().split(" ")[2])) for i in file.readlines()}
-        elif "correlaciones" in mode:
-            path = filedialog.askopenfilename(title="Seleccione archivo de correlaciones", defaultextension=("*", ".txt"), initialfile="correlaciones.txt")
-            root.deiconify()
-            root.destroy()
-            with open(path, mode='r') as file:
-                print(f"Ruta de correlaciones: {path}")
-                return [ i.split(" ") for i in file.readlines()[1:] ] 
+            elif "correlaciones" in mode:
+                return [i.strip().split(" ") for i in file.readlines()[1:]]
+
+
 
 # 🧠 - Clase principal para manejo de portafolios
 class PortfolioGraph():
@@ -89,8 +116,7 @@ class PortfolioGraph():
 
         for pair in correlations_list:
             self.adjacency[pair[0]][pair[1]] = float(pair[2])
-            self.adjacency[pair[1]][pair[0]] = float(pair[2])
-    
+            self.adjacency[pair[1]][pair[0]] = float(pair[2]) 
 
     def max_benefit_portfolio(self, max_correlation: float, min_assets: int, option: int = 1, lim_risk:float = 0.0):
         from itertools import combinations
@@ -128,8 +154,9 @@ class PortfolioGraph():
         #Salidas por opción
         if option == 1:
             return winner_portfolio, round(winner_benefit, 3), len(selected_portfolios)
+        
         elif option == 2: 
-            return winner_portfolio, round(winner_benefit, 3), round(winner_risk, 3), len(selected_portfolios)
+            return winner_portfolio, round(winner_benefit, 3), len(selected_portfolios), round(winner_risk, 3), 
 
     #Retorna verdadero si la correlación media del portafolio está dentro del limite
     def correlation_is_in_bounds(self, max_correlation: float, portfolio: list):
@@ -165,35 +192,59 @@ class PortfolioGraph():
 
 
 if __name__ == "__main__":
+    sw = True
     Printer.clear_console("")
-    while True:
-        option = Utils.validate_input( int, Printer.opener() + Printer.options(), (0,2))
-        if option == 0:
-            break
-
+    while sw:
         Printer.clear_console("")
+        option = Utils.validate_input( int, Printer.opener() + Printer.options(), (0,2))
+        
+        if option == 0:
+            sw = False
+            continue
+        
+        Printer.clear_console("")
+        
         try:
             print("Seleccione el archivo de rendimientos: ")
             actions = Utils.read("rendimientos")
             
-            print("Seleccione el archivo de correlaciones: ")
+            print("\nSeleccione el archivo de correlaciones: ")
             correlations = Utils.read("correlaciones")
+        
         except Exception as e:
             print(Printer.error(e))
             break
+        
         graph = PortfolioGraph(actions, correlations)
         
         if option == 1:
-            max_correlation = Utils.validate_input(float, "Valor máximo de correlación: ", (-1, 1))
+            max_correlation = Utils.validate_input(float, "\nValor máximo de correlación: ", (-1, 1), False)
             min_assets = Utils.validate_input(int, "Valor minimo de acciones en el portafolio: ", (1, len(actions)))
             
-            print(graph.max_benefit_portfolio(max_correlation,min_assets))
+            winner_portfolio, benefit, possible_portfolios = graph.max_benefit_portfolio(max_correlation, min_assets)
+            
+            if winner_portfolio: 
+                print(Printer.title())
+                Printer.print_portfolio(winner_portfolio)
+                print(Printer.summarize(benefit, possible_portfolios))
+            
+            else:
+                print(" No se encontro un conjunto de acciones que cumplieran las condiciones ")
             input("Press any key to continue...")
         
         elif option == 2:
-            max_correlation = Utils.validate_input(float, "Valor máximo de correlación: ", (-1, 1))
-            min_assets = Utils.validate_input(int, "Valor minimo de acciones en el portafolio: ", (1, len(actions)))
+            max_correlation = Utils.validate_input(float, "\nValor máximo de correlación: ", (-1, 1), False)
+            min_assets = Utils.validate_input(int, "Valor minimo de acciones en el portafolio: ", (1, len(actions)), False)
             max_risk = Utils.validate_input(float, "Valor máximo de riesgo medio en el portafolio: ", (1, 10))
             
-            print(graph.max_benefit_portfolio(max_correlation, min_assets, 2, max_risk))
+            winner_portfolio, benefit, possible_portfolios, risk = graph.max_benefit_portfolio(max_correlation, min_assets, 2, max_risk)
+            
+            if winner_portfolio: 
+                print(Printer.title())
+                Printer.print_portfolio(winner_portfolio)
+                print(Printer.summarize(benefit, possible_portfolios, risk))
+            
+            else:
+                print(f"{COLORS['red']}No se encontro un conjunto de acciones que cumplieran las condiciones{COLORS['reset']}")
+                
             input("Press any key to continue...")
