@@ -60,17 +60,20 @@ class Utils:
     def read(mode: str):
         import tkinter as tk
         from tkinter import filedialog
+        
         root = tk.Tk()
         root.withdraw()
 
-        if "rendimientos" in mode: 
+        if "rendimientos" in mode:
             path = filedialog.askopenfilename(title="Seleccione archivo de rendimientos", defaultextension="*, .txt", initialfile="rendimientos.txt")
+            root.deiconify()
             root.destroy()
             with open(path, mode='r') as file:
                 print(f"Ruta de rendimientos: {path}")
                 return { i.strip().split(" ")[0]: (float(i.strip().split(" ")[1]), float(i.strip().split(" ")[2])) for i in file.readlines()}
         elif "correlaciones" in mode:
             path = filedialog.askopenfilename(title="Seleccione archivo de correlaciones", defaultextension=("*", ".txt"), initialfile="correlaciones.txt")
+            root.deiconify()
             root.destroy()
             with open(path, mode='r') as file:
                 print(f"Ruta de correlaciones: {path}")
@@ -175,19 +178,19 @@ if __name__ == "__main__":
         if option == 0:
             break
 
-        elif option == 1:
-            Printer.clear_console("")
-            try:
-                print("Seleccione el archivo de rendimientos: ")
-                actions = Utils.read("rendimientos")
-                
-                print("Seleccione el archivo de correlaciones: ")
-                correlations = Utils.read("correlaciones")
-            except Exception as e:
-                print(Printer.error(e))
-                break
-            graph = PortfolioGraph(actions, correlations)
+        Printer.clear_console("")
+        try:
+            print("Seleccione el archivo de rendimientos: ")
+            actions = Utils.read("rendimientos")
             
+            print("Seleccione el archivo de correlaciones: ")
+            correlations = Utils.read("correlaciones")
+        except Exception as e:
+            print(Printer.error(e))
+            break
+        graph = PortfolioGraph(actions, correlations)
+        
+        if option == 1:
             max_correlation = Utils.validate_input(float, "Valor máximo de correlación: ", (-1, 1))
             min_assets = Utils.validate_input(int, "Valor minimo de acciones en el portafolio: ", (1, len(actions)))
             
@@ -195,24 +198,9 @@ if __name__ == "__main__":
             input("Press any key to continue...")
         
         elif option == 2:
-            Printer.clear_console("")
-            try:
-                print("Seleccione el archivo de rendimientos: ")
-                actions = Utils.read("rendimientos")
-                
-                print("Seleccione el archivo de correlaciones: ")
-                correlations = Utils.read("correlaciones")
-            except Exception as e:
-                print(Printer.error(e))
-                break
-            
-            graph = PortfolioGraph(actions, correlations)
-            
             max_correlation = Utils.validate_input(float, "Valor máximo de correlación: ", (-1, 1))
             min_assets = Utils.validate_input(int, "Valor minimo de acciones en el portafolio: ", (1, len(actions)))
             max_risk = Utils.validate_input(float, "Valor máximo de riesgo medio en el portafolio: ", (1, 10))
-            print(max_risk)
             
             print(graph.max_benefit_portfolio(max_correlation, min_assets, 2, max_risk))
             input("Press any key to continue...")
-            
